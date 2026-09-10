@@ -1,0 +1,161 @@
+/* A heads-up display, not a website.
+   Everything is dark, nothing animates that does not mean something, and the
+   one thing that is allowed to be bright is the instruction. */
+
+:root {
+  --bg: #0a0e12;
+  --panel: #10161d;
+  --edge: #1e2831;
+  --ink: #dbe4ed;
+  --dim: #8a98a6;
+  --amber: #ffd166;
+  --red: #e2604a;
+  --blue: #4a90d9;
+  --green: #5ec98b;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+#bar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 10px 16px; border-bottom: 1px solid var(--edge);
+  background: var(--panel);
+}
+#bar h1 { margin: 0; font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.chip {
+  font: 12px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 6px 9px; border: 1px solid var(--edge); border-radius: 999px; color: var(--dim);
+}
+.chip[data-state="on"] { color: var(--green); border-color: #23503a; }
+.chip[data-state="demo"] { color: var(--amber); border-color: #4d3f1c; }
+.chip[data-state="off"] { color: var(--dim); }
+.chip[data-state="bad"] { color: var(--red); border-color: #4d2320; }
+
+main {
+  display: grid; grid-template-columns: minmax(320px, 1fr) 380px;
+  gap: 16px; padding: 16px; height: calc(100% - 49px);
+}
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; height: auto; }
+  #stage { height: min(88vw, 520px); }
+}
+
+#stage {
+  display: grid; place-items: center;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 12px;
+  min-height: 0; padding: 8px;
+}
+#map { display: block; }
+
+#panel { overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+
+#call {
+  background: var(--panel); border: 1px solid var(--edge);
+  border-left: 3px solid var(--amber); border-radius: 10px; padding: 14px;
+}
+#call .kicker {
+  margin: 0 0 4px; font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim);
+}
+#call h2 { margin: 0 0 6px; font-size: 20px; line-height: 1.2; color: var(--amber); }
+#call p { margin: 0; color: var(--ink); }
+#call .walk { margin-top: 8px; font: 12px ui-monospace, monospace; color: var(--dim); }
+#call[data-kind="danger"] { border-left-color: var(--red); }
+#call[data-kind="danger"] h2 { color: var(--red); }
+#call[data-kind="objective"] { border-left-color: var(--blue); }
+#call[data-kind="objective"] h2 { color: var(--blue); }
+#call[data-kind="fight"] { border-left-color: #e0913f; }
+#call[data-kind="fight"] h2 { color: #f0a955; }
+
+#queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#queue li {
+  display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: baseline;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 8px; padding: 8px 10px;
+}
+#queue .score { font: 11px ui-monospace, monospace; color: var(--dim); }
+#queue .what { font-size: 13px; }
+#queue .why { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+
+.block { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 12px; }
+.block h3 {
+  margin: 0 0 8px; font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim);
+}
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grid .cell { border: 1px solid var(--edge); border-radius: 8px; padding: 7px 8px; }
+.grid .cell .k { font: 10px ui-monospace, monospace; letter-spacing: 0.08em; color: var(--dim); text-transform: uppercase; }
+.grid .cell .v { font: 15px ui-monospace, monospace; }
+.grid .cell[data-soon="1"] .v { color: var(--amber); }
+.grid .cell[data-up="1"] .v { color: var(--green); }
+
+.them { display: flex; flex-direction: column; gap: 5px; }
+.them .foe { display: grid; grid-template-columns: 1fr auto; font-size: 13px; gap: 8px; }
+.them .foe .state { font: 12px ui-monospace, monospace; color: var(--dim); }
+.them .foe[data-dead="1"] .name { color: var(--dim); text-decoration: line-through; }
+.them .foe[data-dead="1"] .state { color: var(--green); }
+.them .foe[data-unseen="1"] .state { color: var(--red); }
+
+.row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.row label { color: var(--dim); font-size: 12px; min-width: 74px; }
+.row.buttons { flex-wrap: wrap; }
+select, button, input[type="range"] { font: inherit; }
+select {
+  background: #0c1218; color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 6px; padding: 5px 8px; flex: 1;
+}
+button {
+  background: #17212b; color: var(--ink); border: 1px solid var(--edge);
+  border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px;
+}
+button:hover:not(:disabled) { border-color: #33414f; }
+button:disabled { opacity: 0.4; cursor: default; }
+button.primary { background: #2a3a22; border-color: #3d5730; color: #cfe8bb; }
+input[type="range"] { flex: 1; accent-color: var(--amber); }
+.note { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+
+#calibrator {
+  position: fixed; inset: 0; background: rgba(6, 9, 12, 0.94);
+  display: grid; place-items: center; padding: 20px; z-index: 10;
+}
+#calibrator[hidden] { display: none; }
+.cal-inner { max-width: 1100px; width: 100%; }
+.cal-inner h2 { margin: 0 0 4px; font-size: 18px; }
+.cal-inner p { margin: 0 0 12px; color: var(--dim); font-size: 13px; }
+.cal-stage { display: grid; grid-template-columns: 1fr 240px; gap: 14px; align-items: start; }
+@media (max-width: 800px) { .cal-stage { grid-template-columns: 1fr; } }
+#cal-screen {
+  width: 100%; border: 1px solid var(--edge); border-radius: 8px;
+  cursor: crosshair; background: #000; display: block;
+}
+#cal-preview {
+  width: 240px; height: 240px; border: 1px solid var(--edge);
+  border-radius: 8px; background: #000; image-rendering: pixelated;
+}
+.cal-buttons { display: flex; gap: 8px; margin-top: 14px; }
+
+/* Compact mode: ?compact=1
+   For a small always-on-top window beside the game, or an OBS browser source.
+   The map and one instruction, nothing else - at that size, a second thing to
+   read is a thing that does not get read. */
+body.compact #bar { padding: 5px 10px; }
+body.compact #bar h1 { font-size: 11px; }
+body.compact main {
+  grid-template-columns: 1fr; grid-template-rows: auto auto;
+  align-content: start; gap: 8px; padding: 8px; height: auto;
+}
+body.compact #stage { aspect-ratio: 1; }
+body.compact #stage { padding: 4px; }
+body.compact #panel { overflow: visible; flex: 0 0 auto; }
+body.compact #panel > *:not(#call) { display: none; }
+body.compact #call { padding: 9px 11px; }
+body.compact #call h2 { font-size: 16px; }
+body.compact #call .walk { margin-top: 4px; }

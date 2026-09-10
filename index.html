@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rift Coach</title>
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128506;</text></svg>">
+</head>
+<body>
+
+<header id="bar">
+  <h1>Rift Coach</h1>
+  <div class="chips">
+    <span class="chip" id="chip-link" data-state="off">Not connected</span>
+    <span class="chip" id="chip-vision" data-state="off">Minimap off</span>
+    <span class="chip" id="chip-clock">--:--</span>
+    <span class="chip" id="chip-phase">&mdash;</span>
+  </div>
+</header>
+
+<main>
+  <section id="stage">
+    <canvas id="map" aria-label="Summoner's Rift with your recommended position"></canvas>
+  </section>
+
+  <aside id="panel">
+    <article id="call">
+      <p class="kicker" id="call-kicker">Waiting for a game</p>
+      <h2 id="call-title">Start League, or open the demo</h2>
+      <p id="call-detail">
+        This page reads the game's own live data endpoint. Nothing is sent anywhere;
+        the only request it makes is to your own machine.
+      </p>
+      <p class="walk" id="call-walk"></p>
+    </article>
+
+    <ol id="queue"></ol>
+
+    <section class="block">
+      <h3>On the clock</h3>
+      <div id="timers" class="grid"></div>
+    </section>
+
+    <section class="block">
+      <h3>Them</h3>
+      <div id="enemies" class="them"></div>
+    </section>
+
+    <section class="block" id="controls">
+      <h3>You</h3>
+      <div class="row">
+        <label for="role">Role</label>
+        <select id="role">
+          <option value="">Auto</option>
+          <option value="TOP">Top</option>
+          <option value="JUNGLE">Jungle</option>
+          <option value="MIDDLE">Mid</option>
+          <option value="BOTTOM">Bot</option>
+          <option value="UTILITY">Support</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="line">In a fight</label>
+        <select id="line">
+          <option value="">By role</option>
+          <option value="front">Front line</option>
+          <option value="mid">Middle</option>
+          <option value="back">Back line</option>
+          <option value="flank">Flank</option>
+        </select>
+      </div>
+
+      <h3>Minimap</h3>
+      <div class="row buttons">
+        <button id="capture-start" type="button">Watch my minimap</button>
+        <button id="capture-calibrate" type="button" disabled>Calibrate</button>
+        <button id="capture-stop" type="button" disabled>Stop</button>
+      </div>
+      <div class="row">
+        <label for="sensitivity">Sensitivity</label>
+        <input id="sensitivity" type="range" min="0" max="1" step="0.02" value="0.5">
+      </div>
+      <div class="row">
+        <label for="flip"><input id="flip" type="checkbox"> Minimap is flipped in game</label>
+      </div>
+      <div class="row">
+        <label for="voice"><input id="voice" type="checkbox"> Say the important ones out loud</label>
+      </div>
+      <p class="note" id="vision-note">
+        The browser will ask which screen to share. Pick the display League is on.
+        Nothing leaves this machine.
+      </p>
+    </section>
+  </aside>
+</main>
+
+<div id="calibrator" hidden>
+  <div class="cal-inner">
+    <h2>Where is your minimap?</h2>
+    <p>Drag a box around the minimap. It will snap square. The preview shows what the
+       coach can see: every champion on it should get a circle.</p>
+    <div class="cal-stage">
+      <canvas id="cal-screen"></canvas>
+      <canvas id="cal-preview" width="240" height="240"></canvas>
+    </div>
+    <div class="cal-buttons">
+      <button id="cal-guess" type="button">Guess for me</button>
+      <button id="cal-save" type="button" class="primary">Save</button>
+      <button id="cal-cancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

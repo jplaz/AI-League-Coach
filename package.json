@@ -1,0 +1,14 @@
+{
+  "name": "rift-coach",
+  "version": "1.0.0",
+  "description": "A real-time League of Legends coach: reads the live client and your own minimap, and tells you where to stand.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "demo": "node server.mjs --demo",
+    "test": "node tools/coach-test.mjs",
+    "lint": "eslint --no-config-lookup -c tools/lint.config.mjs src tools server.mjs"
+  },
+  "keywords": ["league-of-legends", "coach", "overlay", "computer-vision"],
+  "private": true
+}
