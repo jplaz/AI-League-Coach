@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rift Coach &mdash; review</title>
+<link rel="stylesheet" href="./styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>&#128506;</text></svg>">
+</head>
+<body class="review">
+
+<header id="bar">
+  <h1>Review</h1>
+  <div class="chips" id="trend"></div>
+  <a class="linkish" href="./index.html">&larr; back to the coach</a>
+</header>
+
+<main id="review-main">
+  <aside id="games">
+    <h3>Games</h3>
+    <ol id="game-list"></ol>
+  </aside>
+
+  <section id="report">
+    <p class="empty" id="report-empty">
+      No games recorded yet. Play one with the coach open and it will appear here
+      &mdash; the recording is written to a <code>games/</code> folder next to the
+      code and goes nowhere else.
+    </p>
+    <div id="report-body" hidden></div>
+  </section>
+</main>
+
+<script type="module" src="./src/review-main.js"></script>
+</body>
+</html>

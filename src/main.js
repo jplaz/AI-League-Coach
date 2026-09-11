@@ -17,9 +17,11 @@ import { ContactTracker } from './vision/tracker.js';
 import { pollLive } from './live/feed.js';
 import { coach } from './coach/engine.js';
 import { resolveRole, ROLE_LANE } from './model/roles.js';
+import { Recorder } from './live/recorder.js';
 import { RiftMap } from './ui/map.js';
 import { Hud } from './ui/hud.js';
 import { Calibrator } from './ui/calibrate.js';
+import { Overlay } from './ui/overlay.js';
 
 const SETTINGS = 'riftcoach.settings';
 const params = new URL(window.location.href).searchParams;
@@ -32,6 +34,11 @@ const settings = load();
 const capture = new MinimapCapture();
 const tracker = new ContactTracker();
 const map = new RiftMap(document.getElementById('map'));
+const recorder = new Recorder((body) => fetch('/api/log', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+}).then((res) => (res.ok ? res : Promise.reject(new Error(String(res.status))))));
 
 let live = { connected: false, reason: 'Starting up' };
 let polledAt = 0;
@@ -46,6 +53,14 @@ const hud = new Hud({
   onCapture: () => startWatching(),
   onStopCapture: () => { capture.stop(); reportCapture(); },
   onCalibrate: () => calibrator.show(settings.sensitivity),
+  onOverlay: async () => {
+    const result = overlay.open ? (overlay.close(), { ok: true }) : await overlay.popOut();
+    hud.overlayState(overlay.open, result.ok ? null : result.reason);
+  },
+});
+const overlay = new Overlay((open) => {
+  hud.overlayState(open, null);
+  map.resize();
 });
 const calibrator = new Calibrator(capture, () => reportCapture());
 
@@ -128,7 +143,7 @@ function look() {
 function think() {
   if (!live.connected) {
     view = null;
-    hud.update(null, status());
+    hud.update(null, status(), recorder.counts);
     return;
   }
   const now = gameTime();
@@ -148,7 +163,8 @@ function think() {
     junglerSightings: tracker.junglerSightings,
     push: tracker.push(ROLE_LANE[role]),
   });
-  hud.update(view, status());
+  recorder.observe(view, live);
+  hud.update(view, status(), live.demo ? null : recorder.counts);
 }
 
 function status() {
@@ -172,6 +188,13 @@ function frame(now) {
 
 /* The map is square inside a panel that is not; watch the box, not the window. */
 new window.ResizeObserver(() => map.resize()).observe(document.getElementById('stage'));
+
+/* The last few seconds of a game are the ones with the death in them. */
+window.addEventListener('pagehide', () => recorder.flush(Infinity, true));
+
+hud.overlayState(false, overlay.available
+  ? null
+  : 'Floating window needs Chrome or Edge. On other browsers, open ?compact=1 in a small window.');
 
 poll();
 setInterval(poll, 500);

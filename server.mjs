@@ -15,7 +15,7 @@
 
 import { createServer } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { extname, join, normalize, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { demoPayload } from './tools/demo-game.mjs';
@@ -26,6 +26,9 @@ const DEMO = args.includes('--demo');
 const PORT = Number(
   args.find((a) => a.startsWith('--port='))?.slice(7) ?? process.env.PORT ?? 8777,
 );
+/** Recorded games live here, next to the code, and go nowhere else. */
+const GAMES = resolve(ROOT, 'games');
+
 /** Where the scripted game starts, so demo mode opens on something happening. */
 const DEMO_START = Number(args.find((a) => a.startsWith('--from='))?.slice(7) ?? 150);
 const startedAt = Date.now();
@@ -95,17 +98,115 @@ function demoState(url) {
   return { connected: true, demo: true, data: payload, vision };
 }
 
+/** A game id that cannot climb out of the games directory. */
+const safeId = (id) => String(id ?? '').replace(/[^A-Za-z0-9._-]/g, '').slice(0, 120);
+
+/** Read a JSON request body, with a ceiling so a bad client cannot fill memory. */
+function readBody(req, limit = 2_000_000) {
+  return new Promise((done, fail) => {
+    let size = 0;
+    let text = '';
+    req.on('data', (chunk) => {
+      size += chunk.length;
+      if (size > limit) {
+        fail(new Error('Body too large'));
+        req.destroy();
+        return;
+      }
+      text += chunk;
+    });
+    req.on('end', () => {
+      try {
+        done(JSON.parse(text || '{}'));
+      } catch (err) {
+        fail(err);
+      }
+    });
+    req.on('error', fail);
+  });
+}
+
+/**
+ * Append moments to a recorded game.
+ *
+ * Read, concatenate, write. There is exactly one writer - the page you have
+ * open - so nothing more careful than that is needed, and a game file that
+ * loses its last five seconds to a crash has lost nothing that matters.
+ */
+async function appendGame(body) {
+  const id = safeId(body.id);
+  if (!id) throw new Error('A game needs an id');
+  await mkdir(GAMES, { recursive: true });
+  const file = join(GAMES, `${id}.json`);
+  let game = { id, moments: [] };
+  try {
+    game = JSON.parse(await readFile(file, 'utf8'));
+  } catch {
+    /* First write of this game. */
+  }
+  const { moments = [], ...meta } = body;
+  const merged = {
+    ...game, ...meta, id,
+    moments: [...(game.moments ?? []), ...moments],
+  };
+  await writeFile(file, JSON.stringify(merged, null, 1));
+  return { ok: true, id, moments: merged.moments.length };
+}
+
+/** Every recorded game, newest first, without their moment lists. */
+async function listGames() {
+  let names = [];
+  try {
+    names = (await readdir(GAMES)).filter((n) => n.endsWith('.json'));
+  } catch {
+    return [];
+  }
+  const games = [];
+  for (const name of names) {
+    try {
+      const game = JSON.parse(await readFile(join(GAMES, name), 'utf8'));
+      const { moments = [], ...meta } = game;
+      games.push({ ...meta, moments: moments.length });
+    } catch {
+      /* A half-written file is not worth failing the whole list over. */
+    }
+  }
+  return games.sort((a, b) => String(b.startedAt).localeCompare(String(a.startedAt)));
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
+  const json = (body, code = 200) => res.writeHead(code, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  }).end(JSON.stringify(body));
+
+  if (url.pathname === '/api/log' && req.method === 'POST') {
+    try {
+      json(await appendGame(await readBody(req)));
+    } catch (err) {
+      json({ ok: false, reason: err.message }, 400);
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/games') {
+    json({ games: await listGames() });
+    return;
+  }
+
+  if (url.pathname.startsWith('/api/games/')) {
+    const id = safeId(url.pathname.slice('/api/games/'.length));
+    try {
+      json(JSON.parse(await readFile(join(GAMES, `${id}.json`), 'utf8')));
+    } catch {
+      json({ reason: 'No such game' }, 404);
+    }
+    return;
+  }
 
   if (url.pathname === '/api/live') {
-    const body = DEMO || url.searchParams.get('demo') === '1'
-      ? demoState(url)
-      : await askLeague();
-    res.writeHead(200, {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-store',
-    }).end(JSON.stringify(body));
+    json(DEMO || url.searchParams.get('demo') === '1' ? demoState(url) : await askLeague());
     return;
   }
 

@@ -18,6 +18,8 @@ import { deathTimer, isCannonWave, waveNumber } from '../src/model/patch.js';
 import { laneAt, nearestLane, mirror, forTeam, oppose, turret, P } from '../src/model/rift.js';
 import { objectivePoint } from '../src/coach/jungle.js';
 import { wardsFor } from '../src/model/rift.js';
+import { review, trend } from '../src/coach/review.js';
+import { Recorder } from '../src/live/recorder.js';
 import { findChampions } from '../src/vision/detect.js';
 import { ContactTracker } from '../src/vision/tracker.js';
 
@@ -224,6 +226,98 @@ console.log('\nMinimap reading\n');
   ok(jungle.junglerSightings.length === 1, 'an off-lane enemy is logged as their jungler');
   jungle.update(305, { enemies: [{ x: 0.5, y: 0.5 }], allies: [], self: [] });
   ok(jungle.junglerSightings.length === 1, 'but somebody standing in mid lane is not');
+}
+
+console.log('\nThe record, and what it says afterwards\n');
+{
+  /* A recorder is fed the same objects main.js feeds it, and asked whether it
+     noticed the thing worth noticing: warned, then dead eight seconds later. */
+  const written = [];
+  const rec = new Recorder(async (body) => { written.push(body); });
+  const live = (over = {}) => ({
+    connected: true,
+    self: {
+      champion: 'Orianna', cs: 80, gold: 400, level: 9, wards: 6,
+      kills: 2, deaths: 1, assists: 3, isDead: false, name: 'You', ...over,
+    },
+    allies: [], events: [],
+  });
+  const look = (t, over = {}) => ({
+    gameTime: t, team: 'ORDER', role: 'MIDDLE',
+    self: { pos: { x: 0.74, y: 0.62 } },
+    threat: { unaccounted: 3 },
+    danger: 0.72,
+    primary: { id: 'danger', kind: 'danger', score: 88, title: '3 unaccounted for' },
+    ...over,
+  });
+
+  rec.observe(look(600), live());
+  ok(rec.counts.warnings === 1, 'a red card is recorded as a warning');
+  rec.observe(look(604), live());
+  ok(rec.counts.warnings === 1, 'and is not recorded again four seconds later');
+  rec.observe(look(607), live());
+  ok(rec.counts.warnings === 2, 'but is once the throttle is up');
+  rec.observe(look(609), live({ isDead: true, deaths: 2 }));
+  ok(rec.counts.deaths === 1, 'the death is caught on the transition');
+  ok(rec.counts.ignored === 1, 'and is attributed to the warning it followed');
+
+  rec.observe(look(640), live({ isDead: false }));
+  rec.observe(look(700, { primary: { id: 'lane', kind: 'lane', score: 30, title: 'Hold mid' } }), live());
+  rec.observe(look(704, { primary: { id: 'lane', kind: 'lane', score: 30, title: 'Hold mid' } }),
+    live({ isDead: true, deaths: 3 }));
+  ok(rec.counts.deaths === 2 && rec.counts.ignored === 1,
+    'a death with no warning before it is not blamed on one');
+
+  rec.flush(Infinity, true);
+  ok(written.length > 0, 'the record is handed to the server');
+  const moments = written.flatMap((w) => w.moments);
+  ok(moments.some((m) => m.kind === 'death' && m.deep),
+    'a death in their half is recorded as one');
+
+  /* And the report made of it. */
+  const sampled = Array.from({ length: 100 }, (_, i) => ({
+    kind: 'sample', t: i * 15, cs: Math.round(i * 1.1), gold: 300, lvl: 9,
+    wards: i * 0.12, danger: i % 6 === 0 ? 0.8 : 0.1,
+  }));
+  const bad = review({
+    id: 'g', champion: 'Orianna', role: 'MIDDLE', duration: 1500, kda: '2/5/4',
+    moments: [
+      ...sampled,
+      { kind: 'warning', t: 600, danger: 0.7, title: '3 unaccounted for' },
+      { kind: 'death', t: 607, unaccounted: 3, deep: true },
+      { kind: 'warning', t: 1000, danger: 0.66, title: 'outnumbered' },
+      { kind: 'death', t: 1006, unaccounted: 2, deep: false },
+      { kind: 'death', t: 1300, unaccounted: 0, deep: false },
+      { kind: 'objective', t: 900, name: 'drake', mine: false, dist: 0.6 },
+      { kind: 'end', t: 1500, result: 'Lose' },
+    ],
+  });
+  ok(bad.counts.ignoredWarnings === 2, 'the review finds both ignored warnings');
+  ok(bad.leaks[0].id === 'ignored-warnings', 'and puts them at the top of the list');
+  ok(bad.deaths[2].why.includes('no warning'), 'an unwarned death says so plainly');
+  ok(bad.grade.score > 0 && bad.grade.score < 70, 'a leaky game grades low but not at zero',
+    String(bad.grade.score));
+  ok(bad.leaks.every((l) => l.fix && l.fix.length > 10), 'every leak says what to do instead');
+
+  const clean = review({
+    id: 'h', champion: 'Orianna', role: 'MIDDLE', duration: 1500, kda: '8/1/6',
+    moments: [
+      ...Array.from({ length: 100 }, (_, i) => ({
+        kind: 'sample', t: i * 15, cs: Math.round(i * 1.9), gold: 300, lvl: 12,
+        wards: i * 0.25, danger: 0.1,
+      })),
+      { kind: 'death', t: 1200, unaccounted: 1, deep: false },
+      { kind: 'end', t: 1500, result: 'Win' },
+    ],
+  });
+  ok(clean.leaks.length === 0, 'a clean game has nothing to say', JSON.stringify(clean.leaks.map((l) => l.id)));
+  ok(clean.grade.score === 100, 'and grades accordingly', String(clean.grade.score));
+  ok(clean.grade.score > bad.grade.score, 'the clean game grades above the leaky one');
+
+  const t = trend([clean, bad]);
+  ok(t.games === 2 && t.wins === 1, 'the trend counts games and wins');
+  ok(t.moving > 0, 'and notices the newer games being better');
+  ok(t.recurring !== null, 'and names the leak that keeps coming back');
 }
 
 console.log(`\n${checks - failures}/${checks} checks passed`);

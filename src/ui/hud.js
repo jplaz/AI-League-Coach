@@ -32,7 +32,8 @@ export class Hud {
       call: el('call'), kicker: el('call-kicker'), title: el('call-title'),
       detail: el('call-detail'), walk: el('call-walk'),
       queue: el('queue'), timers: el('timers'), enemies: el('enemies'),
-      note: el('vision-note'),
+      note: el('vision-note'), leaks: el('chip-leaks'),
+      overlayNote: el('overlay-note'), overlayButton: el('overlay-pop'),
     };
     this.bind();
   }
@@ -47,6 +48,7 @@ export class Hud {
     el('capture-start').addEventListener('click', () => h.onCapture?.());
     el('capture-stop').addEventListener('click', () => h.onStopCapture?.());
     el('capture-calibrate').addEventListener('click', () => h.onCalibrate?.());
+    el('overlay-pop').addEventListener('click', () => h.onOverlay?.());
   }
 
   /** Put saved settings back on the controls after a reload. */
@@ -66,13 +68,40 @@ export class Hud {
     if (error) this.nodes.note.textContent = error;
   }
 
-  update(view, status) {
+  /** Whether the floating overlay is out, and why not if it would not open. */
+  overlayState(open, problem) {
+    this.nodes.overlayButton.textContent = open ? 'Bring it back' : 'Float over the game';
+    if (problem) this.nodes.overlayNote.textContent = problem;
+  }
+
+  update(view, status, counts = null) {
     this.chips(view, status);
+    this.leaks(counts);
     if (!view) return;
     this.call(view);
     this.queue(view);
     this.timers(view);
     this.enemies(view);
+  }
+
+  /**
+   * The one number worth watching in-game: how many times you have been warned,
+   * and how many of those you died to anyway. It is the only statistic here you
+   * can change in the next thirty seconds.
+   */
+  leaks(counts) {
+    const n = this.nodes.leaks;
+    if (!counts) {
+      /* Demo games are not written to the record, and saying "0 warned" would
+         read as a clean game rather than as nothing being counted. */
+      n.textContent = 'not recording';
+      n.dataset.state = 'off';
+      return;
+    }
+    n.textContent = counts.ignored > 0
+      ? `${counts.ignored} death${counts.ignored > 1 ? 's' : ''} after a warning`
+      : `${counts.warnings} warned`;
+    n.dataset.state = counts.ignored > 0 ? 'bad' : counts.warnings > 0 ? 'demo' : 'off';
   }
 
   chips(view, status) {

@@ -16,6 +16,7 @@
     <span class="chip" id="chip-vision" data-state="off">Minimap off</span>
     <span class="chip" id="chip-clock">--:--</span>
     <span class="chip" id="chip-phase">&mdash;</span>
+    <span class="chip" id="chip-leaks" title="Warnings given, and deaths inside 14s of one">0 warned</span>
   </div>
 </header>
 
@@ -70,6 +71,17 @@
           <option value="flank">Flank</option>
         </select>
       </div>
+
+      <h3>While you play</h3>
+      <div class="row buttons">
+        <button id="overlay-pop" type="button">Float over the game</button>
+        <a class="linkish" href="./review.html" target="_blank" rel="noopener">After-game review &rarr;</a>
+      </div>
+      <p class="note" id="overlay-note">
+        Opens a small always-on-top window with the map and the current call.
+        League has to be in <b>Borderless</b> or <b>Windowed</b> &mdash; nothing
+        can draw over exclusive fullscreen.
+      </p>
 
       <h3>Minimap</h3>
       <div class="row buttons">

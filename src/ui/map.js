@@ -50,14 +50,18 @@ export class RiftMap {
    */
   resize() {
     const host = this.canvas.parentElement;
+    if (!host) return;
+    /* The canvas can be moved into a floating overlay window mid-game, and
+       that window has its own pixel ratio and its own idea of the box. */
+    const view = this.canvas.ownerDocument.defaultView ?? window;
     const box = host.getBoundingClientRect();
-    const style = window.getComputedStyle(host);
+    const style = view.getComputedStyle(host);
     const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
     const padY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
     const side = Math.max(220, Math.min(box.width - padX, box.height - padY));
     this.canvas.style.width = `${side}px`;
     this.canvas.style.height = `${side}px`;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(2, view.devicePixelRatio || 1);
     this.canvas.width = Math.round(side * dpr);
     this.canvas.height = Math.round(side * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

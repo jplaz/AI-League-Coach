@@ -41,8 +41,32 @@ ranked game.
 |---|---|
 | `node server.mjs --port=9000` | serve somewhere else |
 | `node server.mjs --demo --from=900` | start the scripted game at 15:00 |
-| `http://localhost:8777/?compact=1` | map and one instruction only, for a small window kept on top of the game |
-| `npm test` | run the scenario suite |
+| `http://localhost:8777/?compact=1` | map and one instruction only, in a small window |
+| `http://localhost:8777/review.html` | the after-game review |
+| `npm test` | run the suite |
+
+---
+
+## Getting it in front of the game
+
+A second monitor is the easy answer and probably the right one. If you have one
+screen, click **Float over the game**: the coach lifts the map and the current
+instruction into a small always-on-top window that the browser itself keeps
+above other applications. The elements are *moved*, not copied, so it is the
+same canvas being drawn by the same loop — nothing to sync and nothing to slow
+down.
+
+Two conditions, and they are not negotiable:
+
+- **League must be in Borderless or Windowed.** Exclusive fullscreen means the
+  game owns the screen and nothing at all can draw over it — not this, not any
+  overlay.
+- **Floating windows need Chrome or Edge.** Other browsers have no such API
+  yet; there, open `?compact=1` in a small window and position it yourself.
+
+Tick **Say the important ones out loud** and the calls worth interrupting for
+get spoken. That one works in fullscreen, because sound does not care what is
+on top.
 
 ---
 
@@ -145,6 +169,50 @@ with your name in the middle of it.
 
 ---
 
+## Climbing
+
+Nothing can promise you a rank, and this does not. Anyone selling that is
+selling something. What decides where you end up is which mistakes you stop
+making, and the useful thing a program can do is tell you which ones those are —
+precisely, from your own games, rather than from a feeling about how the night
+went.
+
+So every game is recorded to a `games/` folder next to the code: a sample every
+fifteen seconds, every warning the coach gave you, every death with the state of
+the map at the moment it happened, and every objective with how far away you
+were standing when it fell. [`review.html`](review.html) reads it back.
+
+![the after-game review](docs/review.png)
+
+The top line of that report is nearly always the same one, and it is the reason
+the recording exists:
+
+> **3 deaths after a warning you had already been given.**
+
+That is the difference between a mistake and a habit. You cannot see it while
+you play — nobody remembers the four times they got away with it, only the once
+they did not — and it is the cheapest thing on the list to fix, because you
+already had the information both times. The coach counts it live, too: the chip
+in the corner reads `0 warned` until it reads `2 deaths after a warning`.
+
+Under it, in order of what they actually cost you: deaths in their half with the
+map unaccounted for, objectives you were not there for, CS at ten against the
+line for your role, time spent standing somewhere an unaccounted enemy could
+reach you, and vision. Each one says what to do differently in the next game
+rather than just what went wrong in the last one.
+
+The strip along the top is the same reading across every game recorded — grade,
+trend, deaths per ten minutes, ignored warnings per game — because one game is
+noise and twenty is a habit. The benchmarks it measures you against are rules of
+thumb, sitting in `BENCHMARKS` at the top of
+[`src/coach/review.js`](src/coach/review.js); move them to whatever standard you
+are actually chasing.
+
+None of this is uploaded. It is JSON on your disk, and deleting the folder
+deletes it.
+
+---
+
 ## Patches move these numbers
 
 Every timing the coach reasons with lives in one table:
@@ -169,6 +237,7 @@ src/model/roles.js      what you play, and what that means about where you stand
 
 src/live/feed.js        the Live Client Data API, normalised
 src/live/timeline.js    events already happened -> what is about to happen
+src/live/recorder.js    what happened, written down while it happens
 
 src/vision/capture.js   screen share, calibration, cropping the minimap
 src/vision/detect.js    champion icons out of 160x160 pixels
@@ -179,10 +248,13 @@ src/coach/rules.js      the advice itself
 src/coach/wave.js       the minion clock, and recall windows
 src/coach/jungle.js     where their jungler probably is
 src/coach/threat.js     how dangerous a place is, as a number
+src/coach/review.js     a recorded game -> the habits costing you games
 
 src/ui/map.js           the Rift, drawn
 src/ui/hud.js           the words next to it
 src/ui/calibrate.js     the one-time drag
+src/ui/overlay.js       lifting the map into a window that floats over League
+review.html             the after-game report
 
 tools/coach-test.mjs    scenarios, timings, map symmetry, minimap reading
 tools/demo-game.mjs     a game that never happened, in the shape of one that did
@@ -203,7 +275,7 @@ $ npm test
   dead-before-baron    -> dead           Dead - back in 0:38
   recall-window        -> recall         Recall now - 0:06 spare
   ...
-  115/115 checks passed
+  134/134 checks passed
 ```
 
 ---
@@ -220,3 +292,6 @@ $ npm test
   minions, which are not drawn on the minimap.
 - **It is coaching, not commands.** It does not know your cooldowns, your
   matchup, or that you are two levels down and cannot walk up to that wave.
+- **The review only knows what it saw.** A death it had no warning about may
+  still have been avoidable; it just was not avoidable with the information on
+  the minimap.

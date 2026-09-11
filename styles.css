@@ -121,6 +121,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 button.primary { background: #2a3a22; border-color: #3d5730; color: #cfe8bb; }
 input[type="range"] { flex: 1; accent-color: var(--amber); }
 .note { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+.linkish { color: var(--amber); font-size: 13px; text-decoration: none; align-self: center; }
+.linkish:hover { text-decoration: underline; }
 
 #calibrator {
   position: fixed; inset: 0; background: rgba(6, 9, 12, 0.94);
@@ -159,3 +161,67 @@ body.compact #panel > *:not(#call) { display: none; }
 body.compact #call { padding: 9px 11px; }
 body.compact #call h2 { font-size: 16px; }
 body.compact #call .walk { margin-top: 4px; }
+
+/* The review page. Same furniture, one column of games and one of findings. */
+#review-main {
+  display: grid; grid-template-columns: 280px 1fr;
+  gap: 16px; padding: 16px; align-items: start;
+}
+@media (max-width: 860px) { #review-main { grid-template-columns: 1fr; } }
+#games { background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 12px; }
+#games h3 {
+  margin: 0 0 8px; font: 11px/1 ui-monospace, monospace;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim);
+}
+#game-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+#game-list button {
+  width: 100%; text-align: left; display: grid;
+  grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 10px;
+}
+#game-list button.on { border-color: var(--amber); }
+#game-list .g-champ { grid-column: 1; grid-row: 1; font-size: 13px; }
+#game-list .g-meta { grid-column: 1; grid-row: 2; font: 11px ui-monospace, monospace; color: var(--dim); }
+#game-list .g-grade {
+  grid-column: 2; grid-row: 1 / 3; align-self: center;
+  font: 17px ui-monospace, monospace; color: var(--dim);
+}
+#game-list .g-grade[data-label="clean"] { color: var(--green); }
+#game-list .g-grade[data-label="solid"] { color: #9ecf7a; }
+#game-list .g-grade[data-label="leaking"] { color: var(--amber); }
+#game-list .g-grade[data-label="bleeding"] { color: var(--red); }
+
+#report { display: flex; flex-direction: column; gap: 12px; }
+#report .empty { color: var(--dim); font-size: 13px; margin: 0; }
+#report-body { display: flex; flex-direction: column; gap: 12px; }
+.r-head {
+  display: flex; gap: 14px; align-items: center;
+  background: var(--panel); border: 1px solid var(--edge); border-radius: 10px; padding: 14px;
+}
+.r-head h2 { margin: 0; font-size: 18px; }
+.r-sub { margin: 3px 0 0; color: var(--dim); font: 12px ui-monospace, monospace; }
+.r-grade { text-align: center; min-width: 78px; border-right: 1px solid var(--edge); padding-right: 14px; }
+.r-grade .v { font: 30px ui-monospace, monospace; line-height: 1; }
+.r-grade .k {
+  font: 10px ui-monospace, monospace; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--dim); margin-top: 4px;
+}
+.r-grade[data-label="clean"] .v { color: var(--green); }
+.r-grade[data-label="solid"] .v { color: #9ecf7a; }
+.r-grade[data-label="leaking"] .v { color: var(--amber); }
+.r-grade[data-label="bleeding"] .v { color: var(--red); }
+
+.leak { display: grid; grid-template-columns: 26px 1fr; gap: 10px; padding: 9px 0; }
+.leak + .leak { border-top: 1px solid var(--edge); }
+.leak-rank { font: 15px ui-monospace, monospace; color: var(--dim); }
+.leak-title { font-size: 14px; color: var(--amber); }
+.leak-detail { font-size: 13px; color: var(--ink); margin-top: 3px; }
+.leak-fix { font-size: 12px; color: var(--dim); margin-top: 5px; }
+.leak-fix b { color: var(--ink); }
+
+table.deaths { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.deaths td { padding: 5px 0; border-top: 1px solid var(--edge); vertical-align: top; }
+table.deaths tr:first-child td { border-top: none; }
+table.deaths tr[data-warned="1"] td { color: var(--red); }
+.d-clock { font: 12px ui-monospace, monospace; color: var(--dim); width: 48px; }
+.d-tag { font: 11px ui-monospace, monospace; color: var(--dim); text-align: right; white-space: nowrap; }
+body.review #bar .linkish { margin-left: 12px; }
