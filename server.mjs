@@ -18,7 +18,16 @@ import { request as httpsRequest } from 'node:https';
 import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { extname, join, normalize, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { exec } from 'node:child_process';
 import { demoPayload } from './tools/demo-game.mjs';
+
+/* An old Node left over from something else fails somewhere deep with an
+   error nobody can read. Say what is wrong while it is still simple. */
+if (Number(process.versions.node.split('.')[0]) < 18) {
+  console.log(`Rift Coach needs Node.js 18 or newer; this computer has ${process.versions.node}.`);
+  console.log('Install the current version from https://nodejs.org/ and start it again.');
+  process.exit(1);
+}
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
@@ -228,9 +237,40 @@ const server = createServer(async (req, res) => {
   }
 });
 
+const ADDRESS = `http://localhost:${PORT}/${DEMO ? '?demo=1' : ''}`;
+
+/**
+ * Open the coach in the default browser, for the double-click launchers.
+ * Done here rather than in the launcher so it happens after the server is
+ * listening - a browser that arrives first shows an error page, and somebody
+ * who has never used a terminal reasonably concludes the whole thing is broken.
+ */
+function openBrowser() {
+  const quoted = `"${ADDRESS}"`;
+  const command = process.platform === 'win32' ? `start "" ${quoted}`
+    : process.platform === 'darwin' ? `open ${quoted}`
+      : `xdg-open ${quoted}`;
+  exec(command, () => {
+    /* No browser to open is not a reason to stop; the address is printed. */
+  });
+}
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    /* Double-clicking the launcher twice is the commonest way to get here.
+       The coach is already up; show it rather than a stack trace. */
+    console.log(`The coach is already running at ${ADDRESS}`);
+    if (args.includes('--open')) openBrowser();
+    setTimeout(() => process.exit(0), 300);
+    return;
+  }
+  throw err;
+});
+
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Coach -> http://localhost:${PORT}/`);
+  console.log(`Coach -> ${ADDRESS}`);
   console.log(DEMO
     ? `Demo mode: replaying a scripted game from ${Math.floor(DEMO_START / 60)}:${String(DEMO_START % 60).padStart(2, '0')}.`
     : 'Watching for a live game on 127.0.0.1:2999. Start a game and it will connect itself.');
+  if (args.includes('--open')) openBrowser();
 });

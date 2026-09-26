@@ -14,7 +14,33 @@ unaccounted for, and a guess at where their jungler is.
 
 ---
 
-## Running it
+## The easy way — no typing
+
+1. **[Download it](https://github.com/jplaz/AI-League-Coach/archive/refs/heads/main.zip).**
+   A ZIP file lands in your Downloads.
+2. **Unzip it.** Windows: right-click the ZIP → **Extract All** → **Extract**.
+   Mac: double-click the ZIP. You get a folder called `AI-League-Coach-main`.
+3. **Double-click `Try the Demo`** in that folder. Your browser opens by itself
+   on a pretend game, so you can see it working before you rely on it.
+4. When you want to play for real, double-click **`Start Coach`** instead, then
+   start League.
+
+The first time, it may need a free program called Node.js. On Windows it
+installs it for you — click **Yes** if Windows asks. On a Mac it opens the
+download page; install it, then double-click again.
+
+**Windows says "Windows protected your PC"?** That is Windows being cautious
+about anything downloaded. Click **More info**, then **Run anyway**.
+**Mac says it "cannot be opened"?** Right-click the file, choose **Open**, then
+**Open** again. Either way it only asks the first time.
+
+A black window stays open while the coach runs. **Leave it open** — closing it
+turns the coach off. Double-clicking again while it is already running just
+reopens the page.
+
+---
+
+## Running it from a terminal
 
 Node 18 or newer. There are no dependencies to install.
 
@@ -39,6 +65,7 @@ ranked game.
 
 | | |
 |---|---|
+| `node server.mjs --open` | also open it in your browser once it is ready |
 | `node server.mjs --port=9000` | serve somewhere else |
 | `node server.mjs --demo --from=900` | start the scripted game at 15:00 |
 | `http://localhost:8777/?compact=1` | map and one instruction only, in a small window |
@@ -228,6 +255,8 @@ only file that needs to be.
 ## Layout
 
 ```
+Start Coach.bat/.command double-click launchers: find Node, start, open the page
+Try the Demo.bat/.command the same, on the scripted game
 server.mjs              static files, and the one bridge to League
 index.html  styles.css  the page
 
